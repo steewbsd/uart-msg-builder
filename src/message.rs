@@ -7,6 +7,8 @@ pub enum Synchronization {
     Long([u8; 8]),   // 8 byte header
 }
 
+pub const MAX_DATA_CHUNK: usize = 8;
+
 #[derive(Debug)]
 // Structure for a serial message
 pub struct Message<'a, F>
@@ -23,10 +25,37 @@ where
     checksum_func: Option<F>,
 }
 
+
 impl<'a, F> Message<'a, F>
 where
     F: FnMut(u8, &u8) -> u8 + Copy,
 {
+    // Returns inner synchronization header bytes
+    pub fn synch(&self) -> &Synchronization {
+        &self.synch
+    }
+    // Returns inner data (if available)
+    pub fn data(&self) -> Option<&'a [u8]> {
+        self.data
+    }
+    // Returns inner checksum (if available)
+    pub fn checksum(&self) -> Option<u8> {
+        self.checksum
+    }
+    // Returns the max packet size: Header (2, 4 or 8) + chunk size + checksum value
+    pub fn packet_size(&self) -> usize {
+        match self.synch() {
+            Synchronization::Short(s) => {
+                return s.len() + MAX_DATA_CHUNK + 1;
+            },
+            Synchronization::Medium(s) => {
+                return s.len() + MAX_DATA_CHUNK + 1;
+            },
+            Synchronization::Long(s) => {
+                return s.len() + MAX_DATA_CHUNK + 1;
+            }
+        }
+    }
     // Builds a message with the provided data and calculates the CHECKSUM for it,
     // appending it to the message body.
     pub fn build(
