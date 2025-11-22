@@ -7,7 +7,7 @@ pub struct Message<'a>
     // Synchronization header
     synch: u8,
     // Message payload
-    data: Option<&'a [u8]>,
+    data: &'a [u8],
     // Payload cheksum
     checksum: u8,
     // Optional checksum function provided by the implementor
@@ -23,11 +23,21 @@ where
         self.synch
     }
     // Returns inner data (if available)
-    pub fn data(&self) -> Option<&'a [u8]> {
+    pub fn data(&'a self) -> &'a [u8] {
         self.data
     }
+    // Returns a data chunk and points data to the next value, if available
+    pub fn consume_chunk(&'a mut self) -> Option<u8> {
+        if ! self.data().is_empty() {
+            // copy the value to return (first element)
+            let ret_chunk = self.data().first().unwrap();
+            // rotate array to the left to point to the next element (if it exists)
+            self.data.rotate_left(1);
+            return Some(*ret_chunk);
+        } else {None}
+    }
     // Returns inner checksum (if available)
-    pub fn checksum(&self) -> u8 {
+    pub fn checksum(&'a self) -> u8 {
         self.checksum
     }
     // Returns the max packet size: Header (2, 4 or 8) + chunk size + checksum value
